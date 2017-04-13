@@ -4,6 +4,10 @@ import os
 from sklearn.cluster import KMeans
 import numpy as np
 from sets import Set
+from sklearn.utils import shuffle
+from scipy import sparse
+
+
 
 
 
@@ -14,6 +18,8 @@ def loadAllData():
     for line in open("twitter-1.17.1/all.out"):
         words = line.strip().split()
         tweets.append(",".join(words))
+
+    shuffle(tweets)
 
     vec = CountVectorizer()
     vocab = vec.fit_transform(tweets)
@@ -35,18 +41,18 @@ def loadCategoryData():
             tweets.append(",".join(words))
             goldCategories.append(file[0:len(file)-4])
 
+    shuffle(tweets, goldCategories)
+
     vec = CountVectorizer()
     vocab = vec.fit_transform(tweets)
     return vocab,goldCategories
 
 def kmeans(vocab):
-    km = KMeans(15)
+    km = KMeans()
     km.fit(vocab)
     return km.labels_
 
 def accuracy(gold, pred):
-    print gold
-    print pred
     correct_array = []
     incorrect_array = []
 
@@ -67,11 +73,35 @@ def accuracy(gold, pred):
 
     return sum(correct_array) / sum(incorrect_array)
 
+def dropcols_coo(M, idx_to_drop):
+    idx_to_drop = np.unique(idx_to_drop)
+    C = M.tocoo()
+    keep = ~np.in1d(C.col, idx_to_drop)
+    C.data, C.row, C.col = C.data[keep], C.row[keep], C.col[keep]
+    C.col -= idx_to_drop.searchsorted(C.col)   
+    C._shape = (C.shape[0], C.shape[1] - len(idx_to_drop))
+    return C.tocsr()
+
+
 if __name__ == "__main__":
-   vocab,y_gold = loadCategoryData()
-   #vocab = loadAllData()
-   y_pred = kmeans(vocab)
-   print accuracy(y_gold, y_pred)
+    vocab,y_gold = loadCategoryData()
+    #vocab = loadAllData()
+
+    old_shape = vocab.shape
+
+    sumCol = vocab.sum(axis=0)
+    PERCENT_TO_DROP = .30
+    count_to_drop = int(vocab.shape[1] * PERCENT_TO_DROP)
+    indexes_to_delete= sumCol.argsort().tolist()[0][0:count_to_drop]
+
+    indexes_to_delete.sort()
+
+    for index in reversed(indexes_to_delete): 
+        vocab = dropcols_coo(vocab, index) # this is slow, see if faster way/ figure out dropcols_coo (S.O.)
+
+
+    y_pred = kmeans(vocab)
+    print accuracy(y_gold, y_pred)
 
 
 
