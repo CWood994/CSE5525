@@ -4,10 +4,44 @@ import os
 from sklearn.cluster import KMeans
 import numpy as np
 from sets import Set
-from sklearn.utils import shuffle
+import random
 from scipy import sparse
+from sklearn.naive_bayes import BernoulliNB
 
 
+
+class NaiveBayes:
+    """docstring for ClassName"""
+    def __init__(self, data, classes):
+        self.data = data
+        self.gold = classes
+
+        self.splitData()
+        self.train()
+        self.test()
+
+    def splitData(self):
+        PERCENT_TO_TRAIN_ON = .60
+
+        self.trainData = self.data[0:int(self.data.shape[0]*PERCENT_TO_TRAIN_ON),:]
+        self.testData = self.data[int(self.data.shape[0]*PERCENT_TO_TRAIN_ON):,:]
+
+
+    def train(self):
+        self.clf = BernoulliNB()
+        #print self.gold[0:self.trainData.shape[0]]
+        self.clf.fit(self.trainData.toarray(), self.gold[0:self.trainData.shape[0]])
+
+    def test(self):
+        self.guesses = self.clf.predict(self.testData.toarray())
+
+    def accuracy(self):
+        correct = 0
+
+        for i in range(len(self.gold[self.trainData.shape[0]:])):
+            if self.gold[i] == self.guesses[i]:
+                correct += 1
+        return correct / len(self.guesses)
 
 
 
@@ -19,7 +53,7 @@ def loadAllData():
         words = line.strip().split()
         tweets.append(",".join(words))
 
-    shuffle(tweets)
+    random.shuffle(tweets)
 
     vec = CountVectorizer()
     vocab = vec.fit_transform(tweets)
@@ -41,7 +75,9 @@ def loadCategoryData():
             tweets.append(",".join(words))
             goldCategories.append(file[0:len(file)-4])
 
-    shuffle(tweets, goldCategories)
+    c = list(zip(tweets, goldCategories))
+    random.shuffle(c)
+    tweets, goldCategories = zip(*c)
 
     vec = CountVectorizer()
     vocab = vec.fit_transform(tweets)
@@ -49,6 +85,11 @@ def loadCategoryData():
 
 def kmeans(vocab):
     km = KMeans()
+    km.fit(vocab)
+    return km.labels_
+
+def kmeansKnown(vocab):
+    km = KMeans(15)
     km.fit(vocab)
     return km.labels_
 
@@ -71,7 +112,7 @@ def accuracy(gold, pred):
 
     #accuracy_array = [correct_array[i]/incorrect_array[i] for i in range(len(correct_array))]
 
-    return sum(correct_array) / sum(incorrect_array)
+    return sum(correct_array) / (sum(incorrect_array) + sum(correct_array))
 
 def dropcols_coo(M, idx_to_drop):
     idx_to_drop = np.unique(idx_to_drop)
@@ -86,9 +127,7 @@ def dropcols_coo(M, idx_to_drop):
 if __name__ == "__main__":
     vocab,y_gold = loadCategoryData()
     #vocab = loadAllData()
-
-    old_shape = vocab.shape
-
+    
     sumCol = vocab.sum(axis=0)
     PERCENT_TO_DROP = .30
     count_to_drop = int(vocab.shape[1] * PERCENT_TO_DROP)
@@ -102,6 +141,14 @@ if __name__ == "__main__":
 
     y_pred = kmeans(vocab)
     print accuracy(y_gold, y_pred)
+
+
+    y_pred = kmeansKnown(vocab)
+    print accuracy(y_gold, y_pred)
+
+    NB = NaiveBayes(vocab, y_gold)
+    print NB.accuracy()
+
 
 
 
