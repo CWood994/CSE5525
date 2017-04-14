@@ -29,7 +29,6 @@ class NaiveBayes:
 
     def train(self):
         self.clf = BernoulliNB()
-        #print self.gold[0:self.trainData.shape[0]]
         self.clf.fit(self.trainData.toarray(), self.gold[0:self.trainData.shape[0]])
 
     def test(self):
@@ -39,11 +38,26 @@ class NaiveBayes:
         correct = 0
 
         for i in range(len(self.gold[self.trainData.shape[0]:])):
-            if self.gold[i] == self.guesses[i]:
+            if self.gold[self.trainData.shape[0] + i] == self.guesses[i]:
                 correct += 1
         return correct / len(self.guesses)
 
+class mySweetAssAlgorithm:
+    def __init__(self, data):
+        self.data = data
 
+        self.train()
+        self.test()
+
+
+    def train(self):
+        pass
+
+    def test(self):
+        pass
+
+    def accuracy(self):
+        return 100
 
 #unclassified tweets
 def loadAllData():
@@ -93,26 +107,22 @@ def kmeansKnown(vocab):
     km.fit(vocab)
     return km.labels_
 
-def accuracy(gold, pred):
-    correct_array = []
-    incorrect_array = []
 
-    categories = Set(pred)
-    for cat in categories:
-        indexes = [n for (n, e) in enumerate(pred) if e == cat]
-        guesses = [gold[index] for index in indexes]
+def accuracy(gold , pred):
+    numberToCategory = []
+    for i in set(pred):
+        indexes = [n for (n, e) in enumerate(pred) if e == i]
+        guesses = [gold[i] for i in indexes]
         guess = max(set(guesses), key=guesses.count)
-        correct = guesses.count(guess)
-        incorrect = len(guesses) - correct
-        correct_array.append(correct)
-        incorrect_array.append(incorrect)
+        numberToCategory.append(guess)
+    print numberToCategory
 
-    print correct_array
-    print incorrect_array
+    correct = 0
+    for i in range(len(gold)):
+        if gold[i] == numberToCategory[pred[i]]:
+            correct += 1
+    return correct / len(gold)
 
-    #accuracy_array = [correct_array[i]/incorrect_array[i] for i in range(len(correct_array))]
-
-    return sum(correct_array) / (sum(incorrect_array) + sum(correct_array))
 
 def dropcols_coo(M, idx_to_drop):
     idx_to_drop = np.unique(idx_to_drop)
@@ -128,8 +138,9 @@ if __name__ == "__main__":
     vocab,y_gold = loadCategoryData()
     #vocab = loadAllData()
     
+    #drop lowest percent of data... worsens data rn
     sumCol = vocab.sum(axis=0)
-    PERCENT_TO_DROP = .30
+    PERCENT_TO_DROP = 0
     count_to_drop = int(vocab.shape[1] * PERCENT_TO_DROP)
     indexes_to_delete= sumCol.argsort().tolist()[0][0:count_to_drop]
 
@@ -137,17 +148,26 @@ if __name__ == "__main__":
 
     for index in reversed(indexes_to_delete): 
         vocab = dropcols_coo(vocab, index) # this is slow, see if faster way/ figure out dropcols_coo (S.O.)
+    
 
-
+    print "\nKMeans with unknown K\n"
     y_pred = kmeans(vocab)
     print accuracy(y_gold, y_pred)
 
 
+    print "\nKMeans with known K\n"
     y_pred = kmeansKnown(vocab)
     print accuracy(y_gold, y_pred)
 
+
+    print "\nSupervised NaiveBayes\n"
     NB = NaiveBayes(vocab, y_gold)
     print NB.accuracy()
+
+
+    print "\nMy Sweet Ass Algorithm with unknown K\n"
+    CW = mySweetAssAlgorithm(vocab)
+    print CW.accuracy()
 
 
 
