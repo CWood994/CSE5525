@@ -69,6 +69,8 @@ class mySweetAssAlgorithm:
         for i in range(len(self.x)):
             text = re.sub(',', ' ', self.x[i])
             text = re.sub('@', '', text)
+            text = re.sub('is', '', text)
+            text = re.sub('are', '', text)
             tags = nltk.pos_tag(nltk.word_tokenize(text))
 
             verbs = []
@@ -82,15 +84,95 @@ class mySweetAssAlgorithm:
                 NNP.append(verbs)
                 groupIndexes.append([i])
 
-        print len(self.x)
-        print len(groupIndexes)
+        sizes = []
+        for group in groupIndexes:
+            sizes.append(len(group))
 
+        index_to_sort = np.array(sizes).argsort()
 
+        PERCENT_TO_KEEP = .10
 
+        best_group_indexes = index_to_sort[int(PERCENT_TO_KEEP*len(groupIndexes)):]
 
+        best_groups_NNP = []
+        best_groups = []
+        for i in best_group_indexes:
+            best_groups_NNP.append(NNP[i])
+            best_groups.append(groupIndexes[i])
 
-    def accuracy(self):
-        return 100
+        converged = False
+
+        indexes_to_classidy = index_to_sort[0:int(PERCENT_TO_KEEP*len(groupIndexes))]
+        NNP_to_classify = []
+
+        for i in indexes_to_classidy:
+            NNP_to_classify.append(NNP[i])
+
+        passes = 0
+        while len(indexes_to_classidy) > 0:
+            new_list = []
+            for i in range(len(indexes_to_classidy)):
+                if len(NNP_to_classify[i]) - passes > 1:
+                    temp = [i_NNP for i_NNP in best_groups_NNP if NNP_to_classify[i][0:len(NNP_to_classify[i]) - passes] in i_NNP]
+                    if len(temp) > 0:
+                        best_groups[best_groups_NNP.index(temp[0])].append(index_to_sort[indexes_to_classidy[i]])
+                    else:
+                        new_list.append(indexes_to_classidy[i])
+            indexes_to_classidy = list(new_list)
+            passes += 1
+
+        index = 0
+        for NNP_temp in range(len(best_groups_NNP)):
+            print best_groups_NNP[NNP_temp]
+            if best_groups_NNP[NNP_temp] == []:
+                index = NNP_temp
+                break
+
+        classes = range(len(self.x))
+        for i in range(len(best_groups)):
+            if i is not index:
+                for j in best_groups[i]:
+                    classes[j] = i
+
+        to_pop = best_groups[index]
+        to_pop.sort()
+
+        for i in reversed(to_pop):
+            classes.pop(i)
+
+        test = best_groups.pop(index)
+        test2 = list(test)
+        train = self.vocab.toarray()
+
+        tempVocabArray = self.vocab.toarray()
+
+        test.sort()
+        for i in reversed(test):
+            train = np.delete(train, i, 0)
+
+        clf = BernoulliNB()
+        print train
+        print classes
+        clf.fit(train, classes)
+
+        lalaland = np.array([tempVocabArray[i] for i in test2])
+
+        guesses = clf.predict(lalaland)
+        print guesses
+
+        classes = range(len(self.x))
+        for i in range(len(best_groups)):
+            if i is not index:
+                for j in best_groups[i]:
+                    classes[j] = i
+
+        for i in range(len(test2)):
+            classes[test2[i]] = guesses[i]
+
+        self.classes = classes
+
+    def guess(self):
+        return self.classes
 
 #unclassified tweets
 def loadAllData():
@@ -142,12 +224,12 @@ def kmeansKnown(vocab):
 
 
 def accuracy(gold , pred):
-    numberToCategory = []
+    numberToCategory = {}
     for i in set(pred):
         indexes = [n for (n, e) in enumerate(pred) if e == i]
-        guesses = [gold[i] for i in indexes]
+        guesses = [gold[j] for j in indexes]
         guess = max(set(guesses), key=guesses.count)
-        numberToCategory.append(guess)
+        numberToCategory[i] = guess
     print numberToCategory
 
     correct = 0
@@ -197,10 +279,11 @@ if __name__ == "__main__":
     NB = NaiveBayes(vocab, y_gold)
     print NB.accuracy()
 
-
+    
     print "\nMy Sweet Ass Algorithm with unknown K\n"
-    CW = mySweetAssAlgorithm(x, vocab)
-    print CW.accuracy()
+    MSAA = mySweetAssAlgorithm(x, vocab)
+    print accuracy(y_gold, MSAA.guess() )
+
 
 
 
