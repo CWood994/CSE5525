@@ -5,8 +5,11 @@ from sklearn.cluster import KMeans
 import numpy as np
 from sets import Set
 import random
+import re
 from scipy import sparse
 from sklearn.naive_bayes import BernoulliNB
+import nltk #import nltk and do the next line... might be able to stop after a bit, only need some of it
+# nltk.download('all')
 
 
 
@@ -42,19 +45,49 @@ class NaiveBayes:
                 correct += 1
         return correct / len(self.guesses)
 
+
+# NER to find nouns
+# combine ones with all same nouns
+# combine unclassified ones to class if all its nnouns are in class
+# repeat until converge 
+# find closest nouns then assign
+# if no nouns similar then NB on words
+
+#combine similar classes based on similarity of total words if very similar
 class mySweetAssAlgorithm:
-    def __init__(self, data):
-        self.data = data
+    def __init__(self, x, vocab):
+        self.vocab = vocab
+        self.x = x
 
-        self.train()
-        self.test()
+        self.classify()
 
 
-    def train(self):
-        pass
+    def classify(self):
+        NNP = []
+        groupIndexes = []
 
-    def test(self):
-        pass
+        for i in range(len(self.x)):
+            text = re.sub(',', ' ', self.x[i])
+            text = re.sub('@', '', text)
+            tags = nltk.pos_tag(nltk.word_tokenize(text))
+
+            verbs = []
+            for tag in tags:
+                if tag[1][0:2] == "VB":
+                    verbs.append(tag[0])
+            if verbs in NNP:
+                index = NNP.index(verbs)
+                groupIndexes[index].append(i)
+            else:
+                NNP.append(verbs)
+                groupIndexes.append([i])
+
+        print len(self.x)
+        print len(groupIndexes)
+
+
+
+
 
     def accuracy(self):
         return 100
@@ -95,7 +128,7 @@ def loadCategoryData():
 
     vec = CountVectorizer()
     vocab = vec.fit_transform(tweets)
-    return vocab,goldCategories
+    return tweets,vocab,goldCategories
 
 def kmeans(vocab):
     km = KMeans()
@@ -135,12 +168,12 @@ def dropcols_coo(M, idx_to_drop):
 
 
 if __name__ == "__main__":
-    vocab,y_gold = loadCategoryData()
+    x,vocab,y_gold = loadCategoryData()
     #vocab = loadAllData()
     
     #drop lowest percent of data... worsens data rn
     sumCol = vocab.sum(axis=0)
-    PERCENT_TO_DROP = 0
+    PERCENT_TO_DROP = .30
     count_to_drop = int(vocab.shape[1] * PERCENT_TO_DROP)
     indexes_to_delete= sumCol.argsort().tolist()[0][0:count_to_drop]
 
@@ -166,7 +199,7 @@ if __name__ == "__main__":
 
 
     print "\nMy Sweet Ass Algorithm with unknown K\n"
-    CW = mySweetAssAlgorithm(vocab)
+    CW = mySweetAssAlgorithm(x, vocab)
     print CW.accuracy()
 
 
