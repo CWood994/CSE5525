@@ -11,6 +11,11 @@ from sklearn.naive_bayes import BernoulliNB
 from sklearn.cluster import DBSCAN
 from sklearn import linear_model
 import sys
+from nltk.tokenize import RegexpTokenizer
+from stop_words import get_stop_words
+from nltk.stem.porter import PorterStemmer
+from gensim import corpora, models
+import gensim
 import nltk #import nltk and do the next line... might be able to stop after a bit, only need some of it
 # nltk.download('all')
 
@@ -351,7 +356,12 @@ if __name__ == "__main__":
     print "\nSupervised NaiveBayes\n"
     NB = NaiveBayes(vocab, y_gold)
     print NB.accuracy()
-    
+
+    '''
+    print "\nLDA Algorithm with known K\n"
+    lda()
+    print "accuracy: unknown for now, not sure how to test accuracy"
+    '''
 
     print "\nMy Sweet Ass Algorithm with unknown K\n"
     MSAA = mySweetAssAlgorithm(x, vocab)
