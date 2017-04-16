@@ -5,6 +5,11 @@ from sklearn.cluster import KMeans
 import numpy as np
 from sets import Set
 import random
+from nltk.tokenize import RegexpTokenizer
+from stop_words import get_stop_words
+from nltk.stem.porter import PorterStemmer
+from gensim import corpora, models
+import gensim
 import re
 from scipy import sparse
 from sklearn.naive_bayes import BernoulliNB
@@ -12,6 +17,7 @@ from sklearn.cluster import DBSCAN
 from sklearn import linear_model
 import nltk #import nltk and do the next line... might be able to stop after a bit, only need some of it
 # nltk.download('all')
+
 
 
 
@@ -137,6 +143,7 @@ class mySweetAssAlgorithm:
 
         index = 0
         for NNP_temp in range(len(best_groups_NNP)):
+            #print best_groups_NNP[NNP_temp]
             if best_groups_NNP[NNP_temp] == []:
                 index = NNP_temp
                 break
@@ -167,12 +174,18 @@ class mySweetAssAlgorithm:
         for i in reversed(test):
             train = np.delete(train, i, 0)
 
+
+        clf = BernoulliNB()
+        #print train
+        #print classes
         clf = linear_model.SGDClassifier()
+
         clf.fit(train, classes)
 
         lalaland = np.array([tempVocabArray[i] for i in test])
 
         guesses = clf.predict(lalaland)
+        #print guesses
 
         classes = range(len(self.x))
         for i in range(len(best_groups)):
@@ -212,6 +225,7 @@ class mySweetAssAlgorithm:
 
     def guess(self):
         return self.predicted
+
 
 #unclassified tweets
 def loadAllData():
@@ -271,7 +285,7 @@ def accuracy(gold , pred):
         guesses = [gold[j] for j in indexes]
         guess = max(set(guesses), key=guesses.count)
         numberToCategory[i] = guess
-    print numberToCategory
+    #print numberToCategory
 
     correct = 0
     for i in range(len(gold)):
@@ -290,6 +304,35 @@ def dropcols_coo(M, idx_to_drop):
     return C.tocsr()
 
 
+def lda():
+
+    tokenizer = RegexpTokenizer(r'\w+')
+    en_stop = get_stop_words('en')
+    # stemming doesn't seem to actually help
+    p_stemmer = PorterStemmer()
+
+    tweets = []
+    categories = os.listdir("twitter-1.17.1/data/")
+
+    for category in categories:
+        for line in open("twitter-1.17.1/data/"+category):
+            tweets.append(line)
+    data = []
+    for i in tweets:
+        raw = i.lower()
+        tokens = tokenizer.tokenize(raw)
+        stopped_tokens = [i for i in tokens if not i in en_stop]
+        #stemmed_tokens = [p_stemmer.stem(i) for i in stopped_tokens]
+        data.append(stopped_tokens)
+
+    dictionary = corpora.Dictionary(data)
+    corpus = [dictionary.doc2bow(tweet) for tweet in data]
+    ldamodel = gensim.models.ldamodel.LdaModel(corpus, num_topics=15, id2word = dictionary, passes=50)
+
+    # https://rstudio-pubs-static.s3.amazonaws.com/79360_850b2a69980c4488b1db95987a24867a.html
+    # num_words is how many words per topic you want it to print
+    print "LDA Model:\n\n", ldamodel.print_topics(num_words=5)
+
 if __name__ == "__main__":
     x,vocab,y_gold = loadCategoryData()
     #vocab = loadAllData()
@@ -304,6 +347,11 @@ if __name__ == "__main__":
 
     for index in reversed(indexes_to_delete): 
         vocab = dropcols_coo(vocab, index) # this is slow, see if faster way/ figure out dropcols_coo (S.O.)
+
+    print "\nLDA Algorithm with known K\n"
+    lda()
+    print "accuracy: unknown for now, not sure how to test accuracy"
+
 
     y_pred = dbscanunknown(vocab)
     print accuracy(y_gold, y_pred)
@@ -324,7 +372,8 @@ if __name__ == "__main__":
     
     print "\nMy Sweet Ass Algorithm with unknown K\n"
     MSAA = mySweetAssAlgorithm(x, vocab)
-    print accuracy(y_gold, MSAA.guess() )
+    print accuracy(y_gold, MSAA.guess())
+
 
 
 
