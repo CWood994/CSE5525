@@ -15,6 +15,7 @@ from scipy import sparse
 from sklearn.naive_bayes import BernoulliNB
 from sklearn.cluster import DBSCAN
 from sklearn import linear_model
+import sys
 import nltk #import nltk and do the next line... might be able to stop after a bit, only need some of it
 # nltk.download('all')
 
@@ -266,7 +267,7 @@ def loadCategoryData():
     return tweets,vocab,goldCategories
 
 def kmeansKnown(vocab):
-    km = KMeans(15)
+    km = KMeans(30)
     km.fit(vocab)
     return km.labels_
 
@@ -322,16 +323,21 @@ def lda():
         raw = i.lower()
         tokens = tokenizer.tokenize(raw)
         stopped_tokens = [i for i in tokens if not i in en_stop]
-        #stemmed_tokens = [p_stemmer.stem(i) for i in stopped_tokens]
-        data.append(stopped_tokens)
+        stemmed_tokens = [p_stemmer.stem(i) for i in stopped_tokens]
+        data.append(stemmed_tokens) # data.append(stemmed_tokens)
 
     dictionary = corpora.Dictionary(data)
     corpus = [dictionary.doc2bow(tweet) for tweet in data]
-    ldamodel = gensim.models.ldamodel.LdaModel(corpus, num_topics=15, id2word = dictionary, passes=50)
+    ldamodel = gensim.models.ldamodel.LdaModel(corpus, num_topics=15, id2word = dictionary, passes=100)
 
     # https://rstudio-pubs-static.s3.amazonaws.com/79360_850b2a69980c4488b1db95987a24867a.html
-    # num_words is how many words per topic you want it to print
-    print "LDA Model:\n\n", ldamodel.print_topics(num_words=5)
+    for i in range(0,ldamodel.num_topics):
+        print "\nTopic", i
+        for j in ldamodel.get_topic_terms(i, 5):
+            word = dictionary[j[0]]
+            probability = j[1]
+            print word,  "=",  probability
+
 
 if __name__ == "__main__":
     x,vocab,y_gold = loadCategoryData()
