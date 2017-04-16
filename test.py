@@ -10,6 +10,7 @@ from scipy import sparse
 from sklearn.naive_bayes import BernoulliNB
 from sklearn.cluster import DBSCAN
 from sklearn import linear_model
+import sys
 import nltk #import nltk and do the next line... might be able to stop after a bit, only need some of it
 # nltk.download('all')
 
@@ -288,6 +289,39 @@ def dropcols_coo(M, idx_to_drop):
     C.col -= idx_to_drop.searchsorted(C.col)   
     C._shape = (C.shape[0], C.shape[1] - len(idx_to_drop))
     return C.tocsr()
+
+def lda():
+
+    tokenizer = RegexpTokenizer(r'\w+')
+    en_stop = get_stop_words('en')
+    # stemming doesn't seem to actually help
+    p_stemmer = PorterStemmer()
+
+    tweets = []
+    categories = os.listdir("twitter-1.17.1/data/")
+
+    for category in categories:
+        for line in open("twitter-1.17.1/data/"+category):
+            tweets.append(line)
+    data = []
+    for i in tweets:
+        raw = i.lower()
+        tokens = tokenizer.tokenize(raw)
+        stopped_tokens = [i for i in tokens if not i in en_stop]
+        stemmed_tokens = [p_stemmer.stem(i) for i in stopped_tokens]
+        data.append(stemmed_tokens) # data.append(stemmed_tokens)
+
+    dictionary = corpora.Dictionary(data)
+    corpus = [dictionary.doc2bow(tweet) for tweet in data]
+    ldamodel = gensim.models.ldamodel.LdaModel(corpus, num_topics=15, id2word = dictionary, passes=100)
+
+    # https://rstudio-pubs-static.s3.amazonaws.com/79360_850b2a69980c4488b1db95987a24867a.html
+    for i in range(0,ldamodel.num_topics):
+        print "\nTopic", i
+        for j in ldamodel.get_topic_terms(i, 5):
+            word = dictionary[j[0]]
+            probability = j[1]
+            print word,  "=",  probability
 
 
 if __name__ == "__main__":
