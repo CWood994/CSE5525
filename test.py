@@ -62,7 +62,9 @@ class mySweetAssAlgorithm:
         self.x = x
 
         classes,best_groups = self.classify1()
-        self.classify2(classes,best_groups)
+
+        self.predicted = classes
+        #self.classify2(classes,best_groups)
 
 
     def classify1(self):
@@ -99,7 +101,7 @@ class mySweetAssAlgorithm:
 
         index_to_sort = np.array(sizes).argsort()
 
-        PERCENT_TO_CLASSIFY = .95
+        PERCENT_TO_CLASSIFY = .90
 
         best_group_indexes = index_to_sort[int(PERCENT_TO_CLASSIFY*len(groupIndexes)):]
 
@@ -187,6 +189,7 @@ class mySweetAssAlgorithm:
         return classes, best_groups 
 
     def classify2(self, classes, best_groups):
+
         # unassigned = [temp]
         #while unassigned is not empty
 
@@ -257,11 +260,12 @@ def kmeansKnown(vocab):
     return km.labels_
 
 def dbscanunknown(vocab):
-    db = DBSCAN(eps=4.5, min_samples=2).fit(vocab)
+    db = DBSCAN(eps=4.25, min_samples=3).fit(vocab)
     lb =  db.labels_
     print lb
     print len(lb)
     print lb.tolist().count(-1)
+    print lb.tolist().count(0)
     return lb
 
 def accuracy(gold , pred):
@@ -296,7 +300,7 @@ if __name__ == "__main__":
     
     #drop lowest percent of data... worsens data rn
     sumCol = vocab.sum(axis=0)
-    PERCENT_TO_DROP = .30
+    PERCENT_TO_DROP = 0
     count_to_drop = int(vocab.shape[1] * PERCENT_TO_DROP)
     indexes_to_delete= sumCol.argsort().tolist()[0][0:count_to_drop]
 
@@ -304,9 +308,6 @@ if __name__ == "__main__":
 
     for index in reversed(indexes_to_delete): 
         vocab = dropcols_coo(vocab, index) # this is slow, see if faster way/ figure out dropcols_coo (S.O.)
-
-    y_pred = dbscanunknown(vocab)
-    print accuracy(y_gold, y_pred)
 
     print "\nClustering with unknown K\n"
     y_pred = dbscanunknown(vocab)
