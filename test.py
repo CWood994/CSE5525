@@ -1,5 +1,5 @@
 from __future__ import division
-from sklearn.feature_extraction.text import CountVectorizer #pip install
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 import os
 from sklearn.cluster import KMeans
 import numpy as np
@@ -206,10 +206,6 @@ class mySweetAssAlgorithm:
             for ind in indexes:
                 new_classes[ind] = guess
 
-
-
-
-
         self.predicted = new_classes
 
 
@@ -226,8 +222,11 @@ def loadAllData():
 
     random.shuffle(tweets)
 
-    vec = CountVectorizer()
+    vec = TfidfVectorizer(max_df=0.95, min_df=2,
+                                   max_features=10000,
+                                   stop_words='english')
     vocab = vec.fit_transform(tweets)
+
     return vocab
 
 #classified tweets
@@ -249,23 +248,20 @@ def loadCategoryData():
     c = list(zip(tweets, goldCategories))
     random.shuffle(c)
     tweets, goldCategories = zip(*c)
-
-    vec = CountVectorizer()
+    vec = TfidfVectorizer(max_df=0.95, min_df=2,
+                                   max_features=10000,
+                                   stop_words='english')
     vocab = vec.fit_transform(tweets)
     return tweets,vocab,goldCategories
 
 def kmeansKnown(vocab):
-    km = KMeans(15)
+    km = KMeans(30)
     km.fit(vocab)
     return km.labels_
 
 def dbscanunknown(vocab):
-    db = DBSCAN(eps=4.25, min_samples=3).fit(vocab)
+    db = DBSCAN(eps=.9).fit(vocab)
     lb =  db.labels_
-    print lb
-    print len(lb)
-    print lb.tolist().count(-1)
-    print lb.tolist().count(0)
     return lb
 
 def accuracy(gold , pred):
@@ -298,16 +294,15 @@ if __name__ == "__main__":
     x,vocab,y_gold = loadCategoryData()
     #vocab = loadAllData()
     
-    #drop lowest percent of data... worsens data rn
+    #drop lowest percent of data... 
     sumCol = vocab.sum(axis=0)
     PERCENT_TO_DROP = 0
     count_to_drop = int(vocab.shape[1] * PERCENT_TO_DROP)
     indexes_to_delete= sumCol.argsort().tolist()[0][0:count_to_drop]
-
     indexes_to_delete.sort()
-
     for index in reversed(indexes_to_delete): 
-        vocab = dropcols_coo(vocab, index) # this is slow, see if faster way/ figure out dropcols_coo (S.O.)
+        vocab = dropcols_coo(vocab, index) 
+
 
     print "\nClustering with unknown K\n"
     y_pred = dbscanunknown(vocab)
@@ -323,6 +318,7 @@ if __name__ == "__main__":
     NB = NaiveBayes(vocab, y_gold)
     print NB.accuracy()
     
+
     print "\nMy Sweet Ass Algorithm with unknown K\n"
     MSAA = mySweetAssAlgorithm(x, vocab)
     print accuracy(y_gold, MSAA.guess() )
