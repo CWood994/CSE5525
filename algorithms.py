@@ -14,6 +14,8 @@ import sys
 from nltk.tokenize import RegexpTokenizer
 from stop_words import get_stop_words
 from nltk.stem.porter import PorterStemmer
+from sklearn.neural_network import MLPClassifier
+
 # from gensim import corpora, models
 # import gensim
 import nltk #import nltk and do the next line... might be able to stop after a bit, only need some of it
@@ -32,7 +34,7 @@ class NaiveBayes:
         self.test()
 
     def splitData(self):
-        PERCENT_TO_TRAIN_ON = .60
+        PERCENT_TO_TRAIN_ON = .50
 
         self.trainData = self.data[0:int(self.data.shape[0]*PERCENT_TO_TRAIN_ON),:]
         self.testData = self.data[int(self.data.shape[0]*PERCENT_TO_TRAIN_ON):,:]
@@ -62,7 +64,7 @@ class NaiveBayes:
 # if no nouns similar then NB on words
 
 #combine similar classes based on similarity of total words if very similar
-class mySweetAssAlgorithm:
+class POSTC:
     def __init__(self, x, vocab):
         self.vocab = vocab
         self.x = x
@@ -70,7 +72,6 @@ class mySweetAssAlgorithm:
         classes,best_groups = self.classify1()
 
         self.predicted = classes
-        #self.classify2(classes,best_groups)
 
 
     def classify1(self):
@@ -107,7 +108,7 @@ class mySweetAssAlgorithm:
 
         index_to_sort = np.array(sizes).argsort()
 
-        PERCENT_TO_CLASSIFY = .90
+        PERCENT_TO_CLASSIFY = .99
 
         best_group_indexes = index_to_sort[int(PERCENT_TO_CLASSIFY*len(groupIndexes)):]
 
@@ -194,26 +195,6 @@ class mySweetAssAlgorithm:
 
         return classes, best_groups 
 
-    def classify2(self, classes, best_groups):
-
-        # unassigned = [temp]
-        #while unassigned is not empty
-
-        km = KMeans(int(len(best_groups)/2))
-        km.fit(self.vocab, classes)
-        km_results = km.labels_
-
-        new_classes = range(len(classes))
-        for i in set(classes):
-            indexes = [n for (n, e) in enumerate(classes) if e == i]
-            km_guesses = [km_results[ind] for ind in indexes]
-            guess = max(set(km_guesses), key=km_guesses.count)
-
-            for ind in indexes:
-                new_classes[ind] = guess
-
-        self.predicted = new_classes
-
 
     def guess(self):
         return self.predicted
@@ -263,6 +244,11 @@ def loadCategoryData():
 
 def kmeansKnown(vocab):
     km = KMeans(30)
+    km.fit(vocab)
+    return km.labels_
+
+def kmeansKnownexact(vocab):
+    km = KMeans(15)
     km.fit(vocab)
     return km.labels_
 
@@ -329,6 +315,12 @@ def dropcols_coo(M, idx_to_drop):
 #             probability = j[1]
 #             print word,  "=",  probability
 
+def NN(vocab, y_gold):
+    model = MLPClassifier()
+    NUM = 2000
+    model.fit(vocab.toarray()[0:NUM], y_gold[0:NUM]) 
+    y_pred = model.predict(vocab.toarray()[NUM:]) 
+    return y_gold[NUM:],y_pred
 
 if __name__ == "__main__":
     x,vocab,y_gold = loadCategoryData()
@@ -351,8 +343,13 @@ if __name__ == "__main__":
     print accuracy(y_gold, y_pred)
 
 
-    print "\nKMeans with known K\n"
+    print "\nKMeans with known K=30\n"
     y_pred = kmeansKnown(vocab)
+    print accuracy(y_gold, y_pred)
+
+
+    print "\nKMeans with known K=15\n"
+    y_pred = kmeansKnownexact(vocab)
     print accuracy(y_gold, y_pred)
 
 
@@ -360,15 +357,20 @@ if __name__ == "__main__":
     NB = NaiveBayes(vocab, y_gold)
     print NB.accuracy()
 
+
+    print "\nSupervised NN\n"
+    part_gold, part_pred = NN(vocab, y_gold)
+    print accuracy(part_gold, part_pred)
+
     # '''
     # print "\nLDA Algorithm with known K\n"
     # lda()
     # print "accuracy: unknown for now, not sure how to test accuracy"
     # '''
 
-    # print "\nMy Sweet Ass Algorithm with unknown K\n"
-    # MSAA = mySweetAssAlgorithm(x, vocab)
-    # print accuracy(y_gold, MSAA.guess() )
+    print "\nPOSTC unknown K\n"
+    MSAA = POSTC(x, vocab)
+    print accuracy(y_gold, MSAA.guess() )
 
 
 
