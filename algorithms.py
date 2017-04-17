@@ -14,8 +14,8 @@ import sys
 from nltk.tokenize import RegexpTokenizer
 from stop_words import get_stop_words
 from nltk.stem.porter import PorterStemmer
-from gensim import corpora, models
-import gensim
+# from gensim import corpora, models
+# import gensim
 import nltk #import nltk and do the next line... might be able to stop after a bit, only need some of it
 # nltk.download('all')
 
@@ -229,7 +229,7 @@ def loadAllData():
     random.shuffle(tweets)
 
     vec = TfidfVectorizer(max_df=0.95, min_df=2,
-                                   max_features=10000,
+                                   max_features=30000,
                                    stop_words='english')
     vocab = vec.fit_transform(tweets)
 
@@ -240,16 +240,17 @@ def loadCategoryData():
     tweets = []
     goldCategories = []
 
-    categories = os.listdir("twitter-1.17.1/data/")
+    categories = os.listdir("twitter-1.17.1/data_unique/")
     for cat in categories:
         if cat[0] == ".":
             categories.remove(cat)
 
     for file in categories:
-        for line in open("twitter-1.17.1/data/"+file):
+        for line in open("twitter-1.17.1/data_unique/"+file):
             words = line.strip().split()
             tweets.append(",".join(words))
             goldCategories.append(file[0:len(file)-4])
+           
 
     c = list(zip(tweets, goldCategories))
     random.shuffle(c)
@@ -295,43 +296,43 @@ def dropcols_coo(M, idx_to_drop):
     C._shape = (C.shape[0], C.shape[1] - len(idx_to_drop))
     return C.tocsr()
 
-def lda():
+# def lda():
 
-    tokenizer = RegexpTokenizer(r'\w+')
-    en_stop = get_stop_words('en')
-    # stemming doesn't seem to actually help
-    p_stemmer = PorterStemmer()
+#     tokenizer = RegexpTokenizer(r'\w+')
+#     en_stop = get_stop_words('en')
+#     # stemming doesn't seem to actually help
+#     p_stemmer = PorterStemmer()
 
-    tweets = []
-    categories = os.listdir("twitter-1.17.1/data/")
+#     tweets = []
+#     categories = os.listdir("twitter-1.17.1/data/")
 
-    for category in categories:
-        for line in open("twitter-1.17.1/data/"+category):
-            tweets.append(line)
-    data = []
-    for i in tweets:
-        raw = i.lower()
-        tokens = tokenizer.tokenize(raw)
-        stopped_tokens = [i for i in tokens if not i in en_stop]
-        stemmed_tokens = [p_stemmer.stem(i) for i in stopped_tokens]
-        data.append(stemmed_tokens) # data.append(stemmed_tokens)
+#     for category in categories:
+#         for line in open("twitter-1.17.1/data/"+category):
+#             tweets.append(line)
+#     data = []
+#     for i in tweets:
+#         raw = i.lower()
+#         tokens = tokenizer.tokenize(raw)
+#         stopped_tokens = [i for i in tokens if not i in en_stop]
+#         stemmed_tokens = [p_stemmer.stem(i) for i in stopped_tokens]
+#         data.append(stemmed_tokens) # data.append(stemmed_tokens)
 
-    dictionary = corpora.Dictionary(data)
-    corpus = [dictionary.doc2bow(tweet) for tweet in data]
-    ldamodel = gensim.models.ldamodel.LdaModel(corpus, num_topics=15, id2word = dictionary, passes=100)
+#     dictionary = corpora.Dictionary(data)
+#     corpus = [dictionary.doc2bow(tweet) for tweet in data]
+#     ldamodel = gensim.models.ldamodel.LdaModel(corpus, num_topics=15, id2word = dictionary, passes=100)
 
-    # https://rstudio-pubs-static.s3.amazonaws.com/79360_850b2a69980c4488b1db95987a24867a.html
-    for i in range(0,ldamodel.num_topics):
-        print "\nTopic", i
-        for j in ldamodel.get_topic_terms(i, 5):
-            word = dictionary[j[0]]
-            probability = j[1]
-            print word,  "=",  probability
+#     # https://rstudio-pubs-static.s3.amazonaws.com/79360_850b2a69980c4488b1db95987a24867a.html
+#     for i in range(0,ldamodel.num_topics):
+#         print "\nTopic", i
+#         for j in ldamodel.get_topic_terms(i, 5):
+#             word = dictionary[j[0]]
+#             probability = j[1]
+#             print word,  "=",  probability
 
 
 if __name__ == "__main__":
     x,vocab,y_gold = loadCategoryData()
-    #vocab = loadAllData()
+    # vocab = loadAllData()
     
     #drop lowest percent of data... 
     sumCol = vocab.sum(axis=0)
@@ -341,6 +342,8 @@ if __name__ == "__main__":
     indexes_to_delete.sort()
     for index in reversed(indexes_to_delete): 
         vocab = dropcols_coo(vocab, index) 
+
+    print vocab.shape
 
 
     print "\nClustering with unknown K\n"
@@ -357,15 +360,15 @@ if __name__ == "__main__":
     NB = NaiveBayes(vocab, y_gold)
     print NB.accuracy()
 
-    '''
-    print "\nLDA Algorithm with known K\n"
-    lda()
-    print "accuracy: unknown for now, not sure how to test accuracy"
-    '''
+    # '''
+    # print "\nLDA Algorithm with known K\n"
+    # lda()
+    # print "accuracy: unknown for now, not sure how to test accuracy"
+    # '''
 
-    print "\nMy Sweet Ass Algorithm with unknown K\n"
-    MSAA = mySweetAssAlgorithm(x, vocab)
-    print accuracy(y_gold, MSAA.guess() )
+    # print "\nMy Sweet Ass Algorithm with unknown K\n"
+    # MSAA = mySweetAssAlgorithm(x, vocab)
+    # print accuracy(y_gold, MSAA.guess() )
 
 
 

@@ -47,6 +47,7 @@ for i in range(len(HASH_WORD)):
         return text
 
     data = []
+    print "pehle"   
     for tweet in iterator['statuses']:
 
         tweet = json.loads(json.dumps(tweet) )
@@ -60,7 +61,7 @@ for i in range(len(HASH_WORD)):
 
             cleaned = clean(tweet['text']) # content of the tweet
             if (len(cleaned) - lengthofHashTags) > 15 and cleaned[0:2] != "rt":
-                print tweet['text']
+                print tweet['text'].encode('utf-8')
                 print cleaned
                 data.append(cleaned)
                 print "\n"
@@ -68,8 +69,11 @@ for i in range(len(HASH_WORD)):
             #print tweet['user']['id'] # id of the user who posted the tweet
             #print tweet['user']['name'] # name of the user, e.g. "Wei Xu"
             #print tweet['user']['screen_name'] # name of the user account, e.g. "cocoweixu"
-           
-    with open("data/" + FILE_NAME[i] + ".out", "a") as text_file:
+    path = ""       
+    # path = "/Users/Saurabh/Desktop/study/SLP/Project/CSE5525/twitter-1.17.1/"  
+    print path+"data_big/" + FILE_NAME[i] + ".out"     
+    with open(path+"data_big/" + FILE_NAME[i] + ".out", "a") as text_file:
+        print text_file
         for result in data:
             text_file.write(str(result) + "\n")
 '''
