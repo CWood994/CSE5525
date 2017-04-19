@@ -17,17 +17,9 @@ def loadCategoryData(folder="data"):
             categories.remove(cat)
 
     for file in categories:
-        file_data = []
         for line in open("twitter-1.17.1/"+folder+"/"+file):
             tweets.append(line)
-            # file_data.append(line)
             goldCategories.append(file[0:len(file)-4])
-        # new_data = set(file_data)
-        # print new_data
-        # target = open("twitter-1.17.1/data_unique/"+file, 'w')
-        # for item in new_data:
-        # 	target.write("%s" % item)
-        # target.close()
     c = list(zip(tweets, goldCategories))
     random.shuffle(c)
     tweets, goldCategories = zip(*c)
@@ -70,7 +62,6 @@ def decision_accuracy(pred,actual):
 n_features = 10000
 
 # tweets,goldCategories = loadCategoryData()
-
 tweets,goldCategories = loadCategoryData("data_unique")
 # tweets,goldCategories = loadCategoryData("data_big")
 
@@ -103,20 +94,20 @@ print accuracy(test,test_class,kmeans.predict(tfidf_mat_test))
 
 ### Decission trees
 
-# clf = tree.DecisionTreeClassifier(max_depth=10)
-# clf = clf.fit(tfidf_mat, train_class)
+clf = tree.DecisionTreeClassifier(max_depth=10)
+clf = clf.fit(tfidf_mat, train_class)
 
-# train_result = clf.predict(tfidf_mat)
+train_result = clf.predict(tfidf_mat)
 
-# print decision_accuracy(train_result,train_class)
+print decision_accuracy(train_result,train_class)
 
-# test_result = clf.predict(tfidf_mat_test)
-# print decision_accuracy(test_result,test_class)
+test_result = clf.predict(tfidf_mat_test)
+print decision_accuracy(test_result,test_class)
 
 #### Heirarchical clustering
 
-# model = AgglomerativeClustering(n_clusters=30)
-# model.fit(tfidf_mat.toarray(),train_class)
-# print model.labels_
-# print accuracy(train,train_class,model.labels_)
+model = AgglomerativeClustering(n_clusters=30)
+model.fit(tfidf_mat.toarray(),train_class)
+print model.labels_
+print accuracy(train,train_class,model.labels_)
 
